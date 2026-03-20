@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Painel do Familiar - SafeCare{% endblock %}
+{% block body_class %}dashboard-app{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block nav_links %}{% endblock %}
+{% block content %}
+<div class="app-layout">
+  <div class="sidebar-backdrop" data-mobile-menu-backdrop></div>
+  <aside class="sidebar">
+    <button class="sidebar-close" type="button" data-mobile-menu-close aria-label="Fechar menu">
+      <i class="bi bi-x-lg"></i>
+    </button>
+    <div class="brand-card">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SafeCare">
+      <div>
+        <strong>SafeCare</strong>
+        <span>Acompanhamento familiar</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="avatar">{{ session.get('usuario_nome', 'F')[0]|upper }}</div>
+      <div class="profile-meta">
+        <strong>{{ session.get('usuario_nome', 'Familiar') }}</strong>
+        <small>Perfil familiar</small>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" data-dashboard-nav>
+      <a class="sidebar-link is-active" href="#visao-geral" data-view-link="visao-geral"><i class="bi bi-grid"></i> Visão geral</a>
+      <a class="sidebar-link" href="#solicitacoes" data-view-link="solicitacoes"><i class="bi bi-inbox"></i> Solicitações</a>
+      <a class="sidebar-link" href="#pacientes" data-view-link="pacientes"><i class="bi bi-people"></i> Pacientes</a>
+      <a class="sidebar-link" href="#tarefas" data-view-link="tarefas"><i class="bi bi-check2-square"></i> Tarefas</a>
+      <a class="sidebar-link" href="#ocorrencias" data-view-link="ocorrencias"><i class="bi bi-journal-medical"></i> Ocorrências</a>
+      <a class="sidebar-link" href="#notificacoes" data-view-link="notificacoes"><i class="bi bi-bell"></i> Notificações</a>
+      <a class="sidebar-link" href="#relatorios" data-view-link="relatorios"><i class="bi bi-bar-chart"></i> Relatórios</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="btn-outline" href="#solicitacoes"><i class="bi bi-shield-check"></i> Revisar convites</a>
+      <a class="btn-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="dashboard-actionbar">
+      <div class="dashboard-actionbar__meta">
+        <strong>{{ session.get('usuario_nome', 'Usuário') }}</strong>
+        <span>Sessão ativa no SafeCare</span>
+      </div>
+      <a class="btn-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+    <div class="mobile-topbar">
+      <button class="menu-toggle" type="button" data-mobile-menu-toggle aria-label="Abrir menu">
+        <i class="bi bi-list"></i>
+      </button>
+      <div>
+        <strong>SafeCare</strong>
+        <p>Familiar</p>
+      </div>
+      <a class="btn-danger mobile-logout" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+
+    <div class="dashboard-view-stack is-active" data-view-panel="visao-geral">
+    <section id="visao-geral" class="overview-hero">
+      <div>
+        <p class="chip chip-info"><i class="bi bi-heart-pulse"></i> Painel humanizado</p>
+        <h1>{{ saudacao }}, {{ session.get('usuario_nome', 'Familiar') }}.</h1>
+        <p>Agora ficou mais fácil acompanhar pacientes autorizados, visualizar tarefas, entender solicitações pendentes e receber atualizações importantes do cuidado.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn-outline" href="#solicitacoes"><i class="bi bi-inbox"></i> Ver convites</a>
+        <a class="btn-primary" href="#pacientes"><i class="bi bi-people"></i> Pacientes autorizados</a>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Pacientes autorizados</span><span class="stat-icon"><i class="bi bi-people-fill"></i></span></div>
+        <div class="stat-value">{{ pacientes_autorizados|length }}</div>
+        <div class="stat-foot">Acompanhamentos ativos</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Tarefas monitoradas</span><span class="stat-icon"><i class="bi bi-check2-square"></i></span></div>
+        <div class="stat-value">{{ metricas.total_tarefas }}</div>
+        <div class="stat-foot">{{ metricas.concluidas }} concluídas</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Convites pendentes</span><span class="stat-icon"><i class="bi bi-envelope-open"></i></span></div>
+        <div class="stat-value">{{ metricas.pendentes_convites }}</div>
+        <div class="stat-foot">Aguardando sua resposta</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Notificações</span><span class="stat-icon"><i class="bi bi-bell-fill"></i></span></div>
+        <div class="stat-value">{{ metricas.nao_lidas }}</div>
+        <div class="stat-foot">Novidades recentes</div>
+      </article>
+    </section>
+
+    <section class="progress-shell">
+      <div class="progress-card">
+        <div class="progress-header">
+          <div>
+            <h3>Visão diária inteligente</h3>
+            <p class="muted">Veja rapidamente o andamento do cuidado de hoje.</p>
+          </div>
+          <span class="chip chip-info"><i class="bi bi-eye"></i> Acompanhamento</span>
+        </div>
+        <div class="progress-bar"><span style="width: {{ metricas.progresso }}%"></span></div>
+        <p><strong>{{ metricas.progresso }}%</strong> das tarefas já aparecem como concluídas.</p>
+        <div class="progress-split">
+          <div class="mini-metric"><strong>{{ metricas.hoje_total }}</strong><span>Tarefas de hoje</span></div>
+          <div class="mini-metric"><strong>{{ metricas.hoje_concluidas }}</strong><span>Concluídas hoje</span></div>
+          <div class="mini-metric"><strong>{{ metricas.hoje_pendentes }}</strong><span>Pendências de hoje</span></div>
+        </div>
+      </div>
+
+      <div class="smart-card">
+        <div class="section-head">
+          <div>
+            <h3>Alertas importantes</h3>
+            <p class="muted">O que pode exigir sua atenção.</p>
+          </div>
+        </div>
+        {% if solicitacoes %}
+        <ul class="smart-list">
+          {% for s in solicitacoes[:4] %}
+          <li class="smart-item">
+            <div>
+              <strong>{{ s.paciente_nome }}</strong>
+              <p>{{ s.cuidador_nome }} • {{ s.criado_em }}</p>
+            </div>
+            <span class="tag">{{ s.status|capitalize }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty"><i class="bi bi-patch-check"></i><strong>Nenhum alerta crítico.</strong><p>Seus convites e atualizações serão mostrados aqui.</p></div>
+        {% endif %}
+      </div>
+    </section>
+    </div>
+
+    <section id="solicitacoes" class="panel full dashboard-view-panel" data-view-panel="solicitacoes">
+      <div class="section-head">
+        <div>
+          <h2>Fluxo de autorização mais claro</h2>
+          <p class="muted">Entenda cada convite e responda com segurança.</p>
+        </div>
+      </div>
+      {% if solicitacoes %}
+      <div class="cards-grid">
+        {% for s in solicitacoes %}
+        <article class="patient-card">
+          <div class="patient-top">
+            <div class="patient-head">
+              <div class="avatar">{{ s.paciente_nome[0]|upper }}</div>
+              <div>
+                <strong>{{ s.paciente_nome }}</strong>
+                <p>Convite enviado por {{ s.cuidador_nome }}</p>
+              </div>
+            </div>
+            <span class="pill {{ 'pill-pending' if s.status == 'pendente' else 'pill-done' if s.status == 'aceita' else 'pill-danger' }}">{{ s.status|capitalize }}</span>
+          </div>
+          <div class="note-box">{{ s.mensagem or 'Sem mensagem personalizada.' }}</div>
+          <ul class="mini-list">
+            <li>Enviado em <strong>{{ s.criado_em }}</strong></li>
+            <li>{% if s.respondido_em %}Respondido em <strong>{{ s.respondido_em }}</strong>{% else %}Aguardando sua resposta{% endif %}</li>
+          </ul>
+          {% if s.status == 'pendente' %}
+          <div class="list-actions">
+            <form method="POST" action="{{ url_for('aceitar_autorizacao', solicitacao_id=s.id) }}"><button class="btn-primary btn-mini" type="submit"><i class="bi bi-check2-circle"></i> Aceitar</button></form>
+            <form method="POST" action="{{ url_for('recusar_autorizacao', solicitacao_id=s.id) }}"><button class="btn-danger btn-mini" type="submit"><i class="bi bi-x-circle"></i> Recusar</button></form>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty"><i class="bi bi-inbox"></i><strong>Você não possui solicitações.</strong><p>Quando um cuidador enviar um convite, ele aparecerá aqui.</p></div>
+      {% endif %}
+    </section>
+
+    <section id="pacientes" class="panel full dashboard-view-panel" data-view-panel="pacientes">
+      <div class="section-head">
+        <div>
+          <h2>Pacientes autorizados em cards modernos</h2>
+          <p class="muted">Acompanhe cada paciente com visão organizada por abas.</p>
+        </div>
+      </div>
+      {% if pacientes_cards %}
+      <div class="cards-grid">
+        {% for p in pacientes_cards %}
+        <article class="patient-card" data-tab-scope>
+          <div class="patient-top">
+            <div class="patient-head">
+              <div class="avatar">{{ p.nome[0]|upper }}</div>
+              <div>
+                <strong>{{ p.nome }}</strong>
+                <p>{{ p.cuidador_nome }} • {{ p.idade if p.idade is not none else 'Idade não informada' }}{% if p.idade is not none %} anos{% endif %}</p>
+              </div>
+            </div>
+            <span class="pill {{ 'pill-done' if p.pendentes == 0 else 'pill-pending' }}">{{ 'Em dia' if p.pendentes == 0 else p.pendentes ~ ' pendentes' }}</span>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-box"><strong>{{ p.tarefas_hoje }}</strong><span>Tarefas hoje</span></div>
+            <div class="kpi-box"><strong>{{ p.total_tarefas }}</strong><span>Total tarefas</span></div>
+            <div class="kpi-box"><strong>{{ p.progresso }}%</strong><span>Progresso</span></div>
+          </div>
+
+          <div class="card-tabs">
+            <button class="tab-btn is-active" type="button" data-tab="resumo-{{ p.id }}">Resumo</button>
+            <button class="tab-btn" type="button" data-tab="tarefas-{{ p.id }}">Tarefas</button>
+            <button class="tab-btn" type="button" data-tab="ocorrencias-{{ p.id }}">Ocorrências</button>
+          </div>
+
+          <div class="tab-panel is-active" data-panel="resumo-{{ p.id }}">
+            <div class="note-box">{{ p.observacoes or 'Sem observações cadastradas.' }}</div>
+          </div>
+          <div class="tab-panel" data-panel="tarefas-{{ p.id }}">
+            <ul class="mini-list">
+              <li>Concluídas: <strong>{{ p.concluidas }}</strong></li>
+              <li>Pendentes: <strong>{{ p.pendentes }}</strong></li>
+              <li>Para hoje: <strong>{{ p.tarefas_hoje }}</strong></li>
+            </ul>
+          </div>
+          <div class="tab-panel" data-panel="ocorrencias-{{ p.id }}">
+            <div class="note-box">Última ocorrência: {{ p.ultima_ocorrencia.descricao if p.ultima_ocorrencia else 'Nenhuma ocorrência recente.' }}</div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty"><i class="bi bi-person-x"></i><strong>Nenhum paciente autorizado.</strong><p>Você verá aqui apenas pacientes que aceitar acompanhar.</p></div>
+      {% endif %}
+    </section>
+
+    <section id="tarefas" class="dashboard-grid dashboard-view-panel" data-view-panel="tarefas">
+      <div class="panel">
+        <div class="section-head"><div><h2>Tarefas acompanhadas</h2><p class="muted">Rotina com visual mais claro.</p></div></div>
+        {% if tarefas %}
+        <div class="task-list">
+          {% for t in tarefas %}
+          <article class="task-card">
+            <div class="task-top">
+              <div>
+                <strong>{{ t.titulo }}</strong>
+                <div class="task-meta">
+                  <span><i class="bi bi-person"></i> {{ t.paciente_nome }}</span>
+                  <span><i class="bi bi-calendar-event"></i> {{ t.data }}</span>
+                  <span><i class="bi bi-tag"></i> {{ t.tipo }}</span>
+                </div>
+              </div>
+              <span class="pill {{ 'pill-done' if t.status == 'concluida' else 'pill-pending' }}">{{ 'Concluída' if t.status == 'concluida' else 'Pendente' }}</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><i class="bi bi-list-check"></i><strong>Nenhuma tarefa disponível.</strong><p>As tarefas autorizadas aparecerão aqui.</p></div>
+        {% endif %}
+      </div>
+
+    </section>
+
+    <section id="notificacoes" class="dashboard-grid dashboard-view-panel" data-view-panel="notificacoes">
+      <div class="panel">
+        <div class="section-head"><div><h2>Central de notificações</h2><p class="muted">Atualizações compartilhadas pelo cuidado.</p></div></div>
+        {% if notificacoes %}
+        <ul class="notify-list">
+          {% for n in notificacoes %}
+          <li class="notify-item {{ 'unread' if not n.lida else '' }}">
+            <div class="notify-icon"><i class="bi bi-bell"></i></div>
+            <div class="list-main">
+              <strong>{{ n.titulo }}</strong>
+              <span class="muted">{{ n.criado_em }}</span>
+              <p>{{ n.mensagem }}</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty"><i class="bi bi-bell-slash"></i><strong>Sem notificações.</strong><p>Novidades do paciente serão exibidas aqui.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section id="ocorrencias" class="dashboard-grid dashboard-view-panel" data-view-panel="ocorrencias">
+      <div class="panel">
+        <div class="section-head"><div><h2>Ocorrências recentes</h2><p class="muted">Atualizações importantes do paciente.</p></div></div>
+        {% if ocorrencias %}
+        <div class="table-wrap"><table class="table"><thead><tr><th>Data</th><th>Paciente</th><th>Descrição</th></tr></thead><tbody>{% for o in ocorrencias %}<tr><td>{{ o.data }}</td><td>{{ o.paciente_nome }}</td><td class="td-wrap">{{ o.descricao }}</td></tr>{% endfor %}</tbody></table></div>
+        {% else %}
+        <div class="empty"><i class="bi bi-journal-x"></i><strong>Nenhuma ocorrência registrada.</strong><p>Quando houver registros, eles aparecerão aqui.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section id="relatorios" class="dashboard-grid dashboard-view-panel" data-view-panel="relatorios">
+      <div class="panel">
+        <div class="section-head"><div><h2>Relatórios simples</h2><p class="muted">Resumo por período das tarefas autorizadas.</p></div></div>
+        <div class="report-grid">
+          {% for r in relatorios_tarefas %}
+          <div class="report-card"><h4>{{ r.periodo|capitalize }}</h4><p>Total de tarefas: <strong>{{ r.total_tarefas or 0 }}</strong></p><p>Concluídas: <strong>{{ r.concluidas or 0 }}</strong></p></div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

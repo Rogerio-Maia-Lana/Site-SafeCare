@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+{% block title %}Painel do Cuidador - SafeCare{% endblock %}
+{% block body_class %}dashboard-app{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block nav_links %}{% endblock %}
+{% block content %}
+<div class="app-layout">
+  <div class="sidebar-backdrop" data-mobile-menu-backdrop></div>
+  <aside class="sidebar">
+    <button class="sidebar-close" type="button" data-mobile-menu-close aria-label="Fechar menu">
+      <i class="bi bi-x-lg"></i>
+    </button>
+    <div class="brand-card">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SafeCare">
+      <div>
+        <strong>SafeCare</strong>
+        <span>Cuidado inteligente</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="avatar">{{ session.get('usuario_nome', 'U')[0]|upper }}</div>
+      <div class="profile-meta">
+        <strong>{{ session.get('usuario_nome', 'Cuidador') }}</strong>
+        <small>Perfil cuidador</small>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" data-dashboard-nav>
+      <a class="sidebar-link is-active" href="#visao-geral" data-view-link="visao-geral"><i class="bi bi-grid"></i> Visão geral</a>
+      <a class="sidebar-link" href="#pacientes" data-view-link="pacientes"><i class="bi bi-people"></i> Pacientes</a>
+      <a class="sidebar-link" href="#tarefas" data-view-link="tarefas"><i class="bi bi-check2-square"></i> Tarefas</a>
+      <a class="sidebar-link" href="#ocorrencias" data-view-link="ocorrencias"><i class="bi bi-journal-medical"></i> Ocorrências</a>
+      <a class="sidebar-link" href="#autorizacoes" data-view-link="autorizacoes"><i class="bi bi-shield-check"></i> Autorizações</a>
+      <a class="sidebar-link" href="#notificacoes" data-view-link="notificacoes"><i class="bi bi-bell"></i> Notificações</a>
+      <a class="sidebar-link" href="#relatorios" data-view-link="relatorios"><i class="bi bi-bar-chart"></i> Relatórios</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="btn-outline" href="#tarefas"><i class="bi bi-lightning-charge"></i> Prioridades do dia</a>
+      <a class="btn-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="dashboard-actionbar">
+      <div class="dashboard-actionbar__meta">
+        <strong>{{ session.get('usuario_nome', 'Usuário') }}</strong>
+        <span>Sessão ativa no SafeCare</span>
+      </div>
+      <a class="btn-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+    <div class="mobile-topbar">
+      <button class="menu-toggle" type="button" data-mobile-menu-toggle aria-label="Abrir menu">
+        <i class="bi bi-list"></i>
+      </button>
+      <div>
+        <strong>SafeCare</strong>
+        <p>Cuidador</p>
+      </div>
+      <a class="btn-danger mobile-logout" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+
+    <div class="dashboard-view-stack is-active" data-view-panel="visao-geral">
+    <section id="visao-geral" class="overview-hero">
+      <div>
+        <p class="chip chip-info"><i class="bi bi-stars"></i> Dashboard redesenhado</p>
+        <h1>{{ saudacao }}, {{ session.get('usuario_nome', 'Cuidador') }}.</h1>
+        <p>Agora o seu painel está mais moderno, com foco em rotina diária, visão rápida dos pacientes, central de notificações e fluxo mais claro para autorizações.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn-primary" type="button" onclick="abrirModal('modal-paciente')"><i class="bi bi-person-plus"></i> Novo paciente</button>
+        <button class="btn-outline" type="button" onclick="abrirModal('modal-tarefa')"><i class="bi bi-plus-square"></i> Nova tarefa</button>
+        <button class="btn-outline" type="button" onclick="abrirModal('modal-ocorrencia')"><i class="bi bi-journal-medical"></i> Registrar ocorrência</button>
+        <button class="btn-soft" type="button" onclick="abrirModal('modal-autorizacao')"><i class="bi bi-send"></i> Convidar familiar</button>
+      </div>
+    </section>
+
+    <section class="quick-actions">
+      <button class="quick-card" type="button" onclick="abrirModal('modal-paciente')">
+        <span class="quick-icon"><i class="bi bi-person-plus"></i></span>
+        <h3>Cadastrar paciente</h3>
+        <p>Adicione um novo paciente com idade e observações.</p>
+      </button>
+      <button class="quick-card" type="button" onclick="abrirModal('modal-tarefa')">
+        <span class="quick-icon"><i class="bi bi-calendar2-check"></i></span>
+        <h3>Criar tarefa</h3>
+        <p>Monte a rotina diária com mais velocidade.</p>
+      </button>
+      <button class="quick-card" type="button" onclick="abrirModal('modal-ocorrencia')">
+        <span class="quick-icon"><i class="bi bi-clipboard2-heart"></i></span>
+        <h3>Registrar ocorrência</h3>
+        <p>Atualize rapidamente mudanças importantes.</p>
+      </button>
+      <button class="quick-card" type="button" onclick="abrirModal('modal-autorizacao')">
+        <span class="quick-icon"><i class="bi bi-shield-plus"></i></span>
+        <h3>Enviar autorização</h3>
+        <p>Convide um familiar para acompanhar o paciente.</p>
+      </button>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Pacientes ativos</span><span class="stat-icon"><i class="bi bi-people-fill"></i></span></div>
+        <div class="stat-value">{{ total_pacientes }}</div>
+        <div class="stat-foot">Base atual do seu cuidado</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Progresso geral</span><span class="stat-icon"><i class="bi bi-graph-up-arrow"></i></span></div>
+        <div class="stat-value">{{ metricas.progresso }}%</div>
+        <div class="stat-foot">{{ metricas.concluidas }} concluídas de {{ metricas.total_tarefas }}</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Hoje</span><span class="stat-icon"><i class="bi bi-sun"></i></span></div>
+        <div class="stat-value">{{ metricas.hoje_total }}</div>
+        <div class="stat-foot">{{ metricas.hoje_pendentes }} pendentes no dia</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-top"><span class="stat-label">Notificações</span><span class="stat-icon"><i class="bi bi-bell-fill"></i></span></div>
+        <div class="stat-value">{{ metricas.nao_lidas }}</div>
+        <div class="stat-foot">{{ metricas.pendentes_convites }} convites aguardando retorno</div>
+      </article>
+    </section>
+
+    <section class="progress-shell">
+      <div class="progress-card">
+        <div class="progress-header">
+          <div>
+            <h3>Visão diária inteligente</h3>
+            <p class="muted">Resumo do que exige sua atenção agora.</p>
+          </div>
+          <span class="chip chip-info"><i class="bi bi-activity"></i> Rotina do dia</span>
+        </div>
+        <div class="progress-bar"><span style="width: {{ metricas.progresso }}%"></span></div>
+        <p><strong>{{ metricas.progresso }}%</strong> das tarefas já foram concluídas.</p>
+        <div class="progress-split">
+          <div class="mini-metric"><strong>{{ metricas.hoje_total }}</strong><span>Tarefas de hoje</span></div>
+          <div class="mini-metric"><strong>{{ metricas.hoje_concluidas }}</strong><span>Finalizadas hoje</span></div>
+          <div class="mini-metric"><strong>{{ metricas.hoje_pendentes }}</strong><span>Prioridades restantes</span></div>
+        </div>
+      </div>
+
+      <div class="smart-card">
+        <div class="section-head">
+          <div>
+            <h3>Prioridades rápidas</h3>
+            <p class="muted">Itens mais urgentes para a rotina.</p>
+          </div>
+        </div>
+        {% if tarefas_pendentes %}
+        <ul class="smart-list">
+          {% for t in tarefas_pendentes[:4] %}
+          <li class="smart-item">
+            <div>
+              <strong>{{ t.titulo }}</strong>
+              <p>{{ t.paciente_nome }} • {{ t.data }} • {{ t.tipo }}</p>
+            </div>
+            <span class="tag"><i class="bi bi-clock"></i> Pendente</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty"><i class="bi bi-emoji-smile"></i><strong>Tudo em dia.</strong><p>Nenhuma prioridade pendente no momento.</p></div>
+        {% endif %}
+      </div>
+    </section>
+    </div>
+
+    <section id="pacientes" class="panel full dashboard-view-panel" data-view-panel="pacientes">
+      <div class="section-head">
+        <div>
+          <h2>Pacientes com visão em abas</h2>
+          <p class="muted">Cada paciente agora tem um resumo mais moderno e funcional.</p>
+        </div>
+        <div class="section-actions">
+          <button class="btn-primary" type="button" onclick="abrirModal('modal-paciente')"><i class="bi bi-plus-lg"></i> Adicionar</button>
+        </div>
+      </div>
+      {% if pacientes_cards %}
+      <div class="cards-grid">
+        {% for p in pacientes_cards %}
+        <article class="patient-card" data-tab-scope>
+          <div class="patient-top">
+            <div class="patient-head">
+              <div class="avatar">{{ p.nome[0]|upper }}</div>
+              <div>
+                <strong>{{ p.nome }}</strong>
+                <p>{{ p.idade if p.idade is not none else 'Idade não informada' }}{% if p.idade is not none %} anos{% endif %}</p>
+              </div>
+            </div>
+            <span class="pill {{ 'pill-done' if p.pendentes == 0 else 'pill-pending' }}">{{ 'Em dia' if p.pendentes == 0 else p.pendentes ~ ' pendentes' }}</span>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-box"><strong>{{ p.tarefas_hoje }}</strong><span>Tarefas hoje</span></div>
+            <div class="kpi-box"><strong>{{ p.familiares_total }}</strong><span>Familiares</span></div>
+            <div class="kpi-box"><strong>{{ p.total_tarefas }}</strong><span>Total tarefas</span></div>
+          </div>
+
+          <div>
+            <div class="stack-meta"><span>Progresso</span><strong>{{ p.progresso }}%</strong></div>
+            <div class="inline-progress"><span style="width: {{ p.progresso }}%"></span></div>
+          </div>
+
+          <div class="card-tabs">
+            <button class="tab-btn is-active" type="button" data-tab="resumo-{{ p.id }}">Resumo</button>
+            <button class="tab-btn" type="button" data-tab="tarefas-{{ p.id }}">Tarefas</button>
+            <button class="tab-btn" type="button" data-tab="vinculos-{{ p.id }}">Vínculos</button>
+          </div>
+
+          <div class="tab-panel is-active" data-panel="resumo-{{ p.id }}">
+            <div class="note-box">{{ p.observacoes or 'Sem observações cadastradas para este paciente.' }}</div>
+            <div class="note-box">Última ocorrência: {{ p.ultima_ocorrencia.descricao if p.ultima_ocorrencia else 'Nenhuma ocorrência recente.' }}</div>
+          </div>
+          <div class="tab-panel" data-panel="tarefas-{{ p.id }}">
+            <ul class="mini-list">
+              <li>Concluídas: <strong>{{ p.concluidas }}</strong></li>
+              <li>Pendentes: <strong>{{ p.pendentes }}</strong></li>
+              <li>Para hoje: <strong>{{ p.tarefas_hoje }}</strong></li>
+            </ul>
+          </div>
+          <div class="tab-panel" data-panel="vinculos-{{ p.id }}">
+            <ul class="mini-list">
+              <li>Familiares autorizados: <strong>{{ p.familiares_total }}</strong></li>
+              <li>Criado em: <strong>{{ p.criado_em }}</strong></li>
+            </ul>
+          </div>
+
+          <div class="list-actions">
+            <button class="btn-mini-outline" type="button" onclick="abrirModal('modal-paciente-editar-{{ p.id }}')"><i class="bi bi-pencil"></i> Editar</button>
+            <form method="POST" action="{{ url_for('excluir_paciente', paciente_id=p.id) }}" onsubmit="return confirm('Deseja excluir este paciente?')">
+              <button class="btn-danger btn-mini" type="submit"><i class="bi bi-trash"></i> Excluir</button>
+            </form>
+          </div>
+        </article>
+
+        <div id="modal-paciente-editar-{{ p.id }}" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header"><h3>Editar paciente</h3><button class="modal-close" type="button" onclick="fecharModal('modal-paciente-editar-{{ p.id }}')">×</button></div>
+            <form method="POST" action="{{ url_for('editar_paciente', paciente_id=p.id) }}">
+              <div class="input-group"><label>Nome</label><input name="nome" value="{{ p.nome }}" required></div>
+              <div class="input-group"><label>Idade</label><input type="number" name="idade" value="{{ p.idade if p.idade is not none else '' }}"></div>
+              <div class="input-group"><label>Observações</label><textarea class="textarea" name="observacoes">{{ p.observacoes }}</textarea></div>
+              <button class="btn-primary block-btn" type="submit"><i class="bi bi-check2-circle"></i> Salvar alterações</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty"><i class="bi bi-people"></i><strong>Nenhum paciente cadastrado.</strong><p>Cadastre o primeiro paciente para começar sua rotina inteligente.</p></div>
+      {% endif %}
+    </section>
+
+    <section id="tarefas" class="dashboard-grid dashboard-view-panel" data-view-panel="tarefas">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Tarefas com filtros visuais</h2>
+            <p class="muted">Filtre rapidamente a rotina por data, tipo, status e paciente.</p>
+          </div>
+          <button class="btn-primary" type="button" onclick="abrirModal('modal-tarefa')"><i class="bi bi-plus-lg"></i> Nova tarefa</button>
+        </div>
+
+        <form method="GET" action="{{ url_for('dashboard_cuidador') }}#tarefas" class="filter-shell">
+          <div class="filter-grid">
+            <div class="input-group"><label>Paciente</label><select name="paciente_id"><option value="">Todos</option>{% for p in pacientes %}<option value="{{ p.id }}" {% if filtros.paciente_id == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}</select></div>
+            <div class="input-group"><label>Data</label><input type="date" name="data" value="{{ filtros.data }}"></div>
+            <div class="input-group"><label>Tipo</label><select name="tipo"><option value="">Todos</option><option value="rotina" {% if filtros.tipo == 'rotina' %}selected{% endif %}>Rotina</option><option value="medicação" {% if filtros.tipo == 'medicação' %}selected{% endif %}>Medicação</option><option value="higiene" {% if filtros.tipo == 'higiene' %}selected{% endif %}>Higiene</option><option value="alimentação" {% if filtros.tipo == 'alimentação' %}selected{% endif %}>Alimentação</option><option value="consulta" {% if filtros.tipo == 'consulta' %}selected{% endif %}>Consulta</option></select></div>
+            <div class="input-group"><label>Status</label><select name="status"><option value="">Todos</option><option value="pendente" {% if filtros.status == 'pendente' %}selected{% endif %}>Pendente</option><option value="realizada" {% if filtros.status == 'realizada' %}selected{% endif %}>Realizada</option></select></div>
+          </div>
+          <div class="filter-chips">
+            <span class="filter-chip {{ 'active' if not filtros.status else '' }}"><i class="bi bi-grid"></i> Visão geral</span>
+            <span class="filter-chip {{ 'active' if filtros.status == 'pendente' else '' }}"><i class="bi bi-hourglass-split"></i> Pendentes</span>
+            <span class="filter-chip {{ 'active' if filtros.status == 'realizada' else '' }}"><i class="bi bi-check2-circle"></i> Realizadas</span>
+            {% if filtros.tipo %}<span class="filter-chip active"><i class="bi bi-funnel"></i> {{ filtros.tipo }}</span>{% endif %}
+          </div>
+          <div class="section-actions">
+            <button class="btn-primary" type="submit"><i class="bi bi-search"></i> Aplicar filtros</button>
+            <a class="btn-outline" href="{{ url_for('dashboard_cuidador') }}#tarefas"><i class="bi bi-arrow-counterclockwise"></i> Limpar</a>
+          </div>
+        </form>
+
+        {% if tarefas %}
+        <div class="task-list">
+          {% for t in tarefas %}
+          <article class="task-card">
+            <div class="task-top">
+              <div>
+                <strong>{{ t.titulo }}</strong>
+                <div class="task-meta">
+                  <span><i class="bi bi-person"></i> {{ t.paciente_nome }}</span>
+                  <span><i class="bi bi-calendar-event"></i> {{ t.data }}</span>
+                  <span><i class="bi bi-tag"></i> {{ t.tipo }}</span>
+                </div>
+              </div>
+              <span class="pill {{ 'pill-done' if t.concluida else 'pill-pending' }}">{{ 'Concluída' if t.concluida else 'Pendente' }}</span>
+            </div>
+            <div class="task-actions">
+              <form method="POST" action="{{ url_for('atualizar_status_tarefa', tarefa_id=t.id) }}"><button class="btn-mini" type="submit"><i class="bi bi-check2"></i> {{ 'Reabrir' if t.concluida else 'Concluir' }}</button></form>
+              <button class="btn-mini-outline" type="button" onclick="abrirModal('modal-tarefa-{{ t.id }}')"><i class="bi bi-pencil"></i> Editar</button>
+              <form method="POST" action="{{ url_for('excluir_tarefa', tarefa_id=t.id) }}" onsubmit="return confirm('Deseja excluir esta tarefa?')"><button class="btn-danger btn-mini" type="submit"><i class="bi bi-trash"></i> Excluir</button></form>
+            </div>
+          </article>
+
+          <div id="modal-tarefa-{{ t.id }}" class="modal hidden">
+            <div class="modal-content">
+              <div class="modal-header"><h3>Editar tarefa</h3><button class="modal-close" type="button" onclick="fecharModal('modal-tarefa-{{ t.id }}')">×</button></div>
+              <form method="POST" action="{{ url_for('editar_tarefa', tarefa_id=t.id) }}">
+                <div class="input-group"><label>Descrição</label><input name="descricao" value="{{ t.titulo }}" required></div>
+                <div class="input-group"><label>Tipo</label><select name="tipo"><option value="rotina" {% if t.tipo == 'rotina' %}selected{% endif %}>Rotina</option><option value="medicação" {% if t.tipo == 'medicação' %}selected{% endif %}>Medicação</option><option value="higiene" {% if t.tipo == 'higiene' %}selected{% endif %}>Higiene</option><option value="alimentação" {% if t.tipo == 'alimentação' %}selected{% endif %}>Alimentação</option><option value="consulta" {% if t.tipo == 'consulta' %}selected{% endif %}>Consulta</option></select></div>
+                <div class="input-group"><label>Data</label><input type="date" name="data" value="{{ t.data }}" required></div>
+                <button class="btn-primary block-btn" type="submit"><i class="bi bi-check2-circle"></i> Salvar alterações</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><i class="bi bi-list-check"></i><strong>Nenhuma tarefa encontrada.</strong><p>Experimente limpar os filtros ou criar uma nova tarefa.</p></div>
+        {% endif %}
+      </div>
+
+    </section>
+
+    <section id="notificacoes" class="dashboard-grid dashboard-view-panel" data-view-panel="notificacoes">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Central de notificações</h2>
+            <p class="muted">Mensagens importantes e andamento das autorizações.</p>
+          </div>
+        </div>
+        {% if notificacoes %}
+        <ul class="notify-list">
+          {% for n in notificacoes %}
+          <li class="notify-item {{ 'unread' if not n.lida else '' }}">
+            <div class="notify-icon"><i class="bi bi-bell"></i></div>
+            <div class="list-main">
+              <strong>{{ n.titulo }}</strong>
+              <span class="muted">{{ n.criado_em }}</span>
+              <p>{{ n.mensagem }}</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty"><i class="bi bi-bell-slash"></i><strong>Sem notificações no momento.</strong><p>Quando houver novidades, elas aparecerão aqui.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section id="autorizacoes" class="dashboard-grid dashboard-view-panel" data-view-panel="autorizacoes">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Fluxo de autorização mais claro</h2>
+            <p class="muted">Veja familiares já vinculados e convites em andamento.</p>
+          </div>
+          <button class="btn-soft" type="button" onclick="abrirModal('modal-autorizacao')"><i class="bi bi-send"></i> Novo convite</button>
+        </div>
+        {% if autorizacoes %}
+        <ul class="list">
+          {% for a in autorizacoes %}
+          <li class="list-item">
+            <div class="list-main">
+              <strong>{{ a.familiar_nome }}</strong>
+              <p>{{ a.familiar_email }}</p>
+              <span class="muted">Paciente vinculado: {{ a.paciente_nome }}</span>
+            </div>
+            <span class="pill pill-done"><i class="bi bi-check-circle"></i> Autorizado</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty"><i class="bi bi-shield"></i><strong>Nenhum familiar autorizado.</strong><p>Envie um convite para começar o acompanhamento compartilhado.</p></div>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Solicitações enviadas</h2>
+            <p class="muted">Acompanhe quem aceitou, recusou ou ainda está pendente.</p>
+          </div>
+        </div>
+        {% if solicitacoes_enviadas %}
+        <div class="timeline">
+          {% for s in solicitacoes_enviadas %}
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="task-card">
+              <div class="task-top">
+                <div>
+                  <strong>{{ s.familiar_nome }}</strong>
+                  <div class="task-meta">
+                    <span>{{ s.familiar_email }}</span>
+                    <span>Paciente: {{ s.paciente_nome }}</span>
+                  </div>
+                </div>
+                <span class="pill {{ 'pill-pending' if s.status == 'pendente' else 'pill-done' if s.status == 'aceita' else 'pill-danger' }}">{{ s.status|capitalize }}</span>
+              </div>
+              <p class="muted">{{ s.mensagem or 'Sem mensagem personalizada.' }}</p>
+              <span class="muted">Enviado em {{ s.criado_em }}{% if s.respondido_em %} • Respondido em {{ s.respondido_em }}{% endif %}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><i class="bi bi-send-check"></i><strong>Nenhuma solicitação enviada.</strong><p>Use o novo fluxo para compartilhar o cuidado com mais clareza.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section id="ocorrencias" class="dashboard-grid dashboard-view-panel" data-view-panel="ocorrencias">
+      <div class="panel">
+        <div class="section-head"><div><h2>Ocorrências recentes</h2><p class="muted">Histórico rápido do cuidado.</p></div></div>
+        {% if ocorrencias %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Data</th><th>Paciente</th><th>Descrição</th></tr></thead>
+            <tbody>{% for o in ocorrencias %}<tr><td>{{ o.data }}</td><td>{{ o.paciente_nome }}</td><td class="td-wrap">{{ o.descricao }}</td></tr>{% endfor %}</tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty"><i class="bi bi-journal-x"></i><strong>Nenhuma ocorrência registrada.</strong><p>Os registros clínicos e observações aparecerão aqui.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section id="relatorios" class="dashboard-grid dashboard-view-panel" data-view-panel="relatorios">
+      <div class="panel">
+        <div class="section-head"><div><h2>Relatórios simples</h2><p class="muted">Acompanhe o desempenho por período.</p></div></div>
+        <div class="report-grid">
+          {% for r in relatorios_tarefas %}
+          <div class="report-card">
+            <h4>{{ r.periodo|capitalize }}</h4>
+            <p>Total de tarefas: <strong>{{ r.total_tarefas or 0 }}</strong></p>
+            <p>Concluídas: <strong>{{ r.concluidas or 0 }}</strong></p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal-paciente" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Novo paciente</h3><button class="modal-close" type="button" onclick="fecharModal('modal-paciente')">×</button></div>
+    <form method="POST" action="{{ url_for('criar_paciente') }}">
+      <div class="input-group"><label>Nome</label><input name="nome" required></div>
+      <div class="input-group"><label>Idade</label><input type="number" name="idade"></div>
+      <div class="input-group"><label>Observações</label><textarea class="textarea" name="observacoes"></textarea></div>
+      <button class="btn-primary block-btn" type="submit"><i class="bi bi-check2-circle"></i> Cadastrar paciente</button>
+    </form>
+  </div>
+</div>
+
+<div id="modal-tarefa" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Nova tarefa</h3><button class="modal-close" type="button" onclick="fecharModal('modal-tarefa')">×</button></div>
+    <form method="POST" action="{{ url_for('criar_tarefa') }}">
+      <div class="input-group"><label>Paciente</label><select name="paciente_id" required>{% for p in pacientes %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}</select></div>
+      <div class="input-group"><label>Descrição</label><input name="descricao" required></div>
+      <div class="input-group"><label>Tipo</label><select name="tipo"><option value="rotina">Rotina</option><option value="medicação">Medicação</option><option value="higiene">Higiene</option><option value="alimentação">Alimentação</option><option value="consulta">Consulta</option></select></div>
+      <div class="input-group"><label>Data</label><input type="date" name="data" required></div>
+      <button class="btn-primary block-btn" type="submit"><i class="bi bi-check2-circle"></i> Criar tarefa</button>
+    </form>
+  </div>
+</div>
+
+<div id="modal-ocorrencia" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Nova ocorrência</h3><button class="modal-close" type="button" onclick="fecharModal('modal-ocorrencia')">×</button></div>
+    <form method="POST" action="{{ url_for('criar_ocorrencia') }}">
+      <div class="input-group"><label>Paciente</label><select name="paciente_id" required>{% for p in pacientes %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}</select></div>
+      <div class="input-group"><label>Descrição</label><textarea class="textarea" name="descricao" required></textarea></div>
+      <button class="btn-primary block-btn" type="submit"><i class="bi bi-check2-circle"></i> Registrar ocorrência</button>
+    </form>
+  </div>
+</div>
+
+<div id="modal-autorizacao" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Convidar familiar</h3><button class="modal-close" type="button" onclick="fecharModal('modal-autorizacao')">×</button></div>
+    <form method="POST" action="{{ url_for('enviar_solicitacao_autorizacao') }}">
+      <div class="input-group"><label>Paciente</label><select name="paciente_id" required>{% for p in pacientes %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}</select></div>
+      <div class="input-group"><label>E-mail do familiar</label><input type="email" name="email_familiar" required></div>
+      <div class="input-group"><label>Mensagem</label><textarea class="textarea" name="mensagem" placeholder="Explique de forma clara o motivo do convite."></textarea></div>
+      <button class="btn-primary block-btn" type="submit"><i class="bi bi-send"></i> Enviar convite</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

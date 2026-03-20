@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Login - SafeCare{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+{% block nav_links %}
+<li><a class="btn-nav" href="{{ url_for('home') }}">Início</a></li>
+<li><a class="btn-nav-primary" href="{{ url_for('cadastro') }}">Criar conta</a></li>
+{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Bem-vindo(a)</h1>
+    <p class="subtitle">Entre para acessar seu painel com segurança.</p>
+    <form method="POST" class="auth-form">
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" name="email" placeholder="Digite seu e-mail" required>
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <div class="password-wrap">
+          <input id="senha" type="password" name="senha" placeholder="Digite sua senha" required>
+          <button class="btn-eye" type="button" onclick="toggleSenha()">👁️</button>
+        </div>
+      </div>
+      <button class="btn-login" type="submit">Entrar</button>
+    </form>
+    <p class="create-account">Não possui conta? <a href="{{ url_for('cadastro') }}">Criar agora</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleSenha(){
+  const input = document.getElementById('senha');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

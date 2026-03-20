@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SafeCare{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <nav class="navbar">
+    <div class="container nav-inner">
+      <a class="logo-area" href="{{ url_for('home') }}">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="SafeCare">
+        <span class="logo-text">SafeCare</span>
+      </a>
+      <ul class="nav-links">
+        {% block nav_links %}{% endblock %}
+      </ul>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-stack" aria-live="polite" aria-atomic="true">
+        {% for categoria, mensagem in messages %}
+          <div class="toast-item {{ categoria }}">
+            <div class="toast-icon"><i class="bi {{ 'bi-check-circle-fill' if categoria == 'success' else 'bi-exclamation-triangle-fill' }}"></i></div>
+            <div>
+              <strong>{{ 'Sucesso' if categoria == 'success' else 'Atenção' }}</strong>
+              <p>{{ mensagem }}</p>
+            </div>
+            <button type="button" class="toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>© 2026 SafeCare. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    function abrirModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.remove('hidden');
+    }
+    function fecharModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('hidden');
+    }
+    document.addEventListener('click', function(event) {
+      if (event.target.classList.contains('modal')) {
+        event.target.classList.add('hidden');
+      }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(() => {
+        document.querySelectorAll('.toast-item').forEach((toast, index) => {
+          setTimeout(() => toast.classList.add('toast-hide'), index * 200);
+          setTimeout(() => toast.remove(), 4300 + index * 200);
+        });
+      }, 3500);
+
+      document.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const scope = btn.closest('[data-tab-scope]') || document;
+          const target = btn.getAttribute('data-tab');
+          scope.querySelectorAll('[data-tab]').forEach(item => item.classList.remove('is-active'));
+          scope.querySelectorAll('[data-panel]').forEach(panel => panel.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          const panel = scope.querySelector(`[data-panel="${target}"]`);
+          if (panel) panel.classList.add('is-active');
+        });
+      });
+
+      const navLinks = document.querySelectorAll('[data-view-link]');
+      const viewPanels = document.querySelectorAll('[data-view-panel]');
+      const mobileMenuToggle = document.querySelector('[data-mobile-menu-toggle]');
+      const mobileMenuClose = document.querySelector('[data-mobile-menu-close]');
+      const mobileMenuBackdrop = document.querySelector('[data-mobile-menu-backdrop]');
+      const appLayout = document.querySelector('.app-layout');
+      const closeMobileMenu = () => {
+        if (!appLayout) return;
+        appLayout.classList.remove('sidebar-open');
+        document.body.classList.remove('dashboard-menu-open');
+      };
+      const openMobileMenu = () => {
+        if (!appLayout) return;
+        appLayout.classList.add('sidebar-open');
+        document.body.classList.add('dashboard-menu-open');
+      };
+
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => {
+          if (appLayout && appLayout.classList.contains('sidebar-open')) {
+            closeMobileMenu();
+          } else {
+            openMobileMenu();
+          }
+        });
+      }
+
+      if (mobileMenuClose) {
+        mobileMenuClose.addEventListener('click', closeMobileMenu);
+      }
+
+      if (mobileMenuBackdrop) {
+        mobileMenuBackdrop.addEventListener('click', closeMobileMenu);
+      }
+
+      if (navLinks.length && viewPanels.length) {
+        const setActiveView = (viewName, syncHash = true) => {
+          const resolvedView = document.querySelector(`[data-view-panel="${viewName}"]`) ? viewName : 'visao-geral';
+          viewPanels.forEach(panel => panel.classList.toggle('is-active', panel.getAttribute('data-view-panel') === resolvedView));
+          navLinks.forEach(link => link.classList.toggle('is-active', link.getAttribute('data-view-link') === resolvedView));
+          if (syncHash) {
+            if (window.location.hash !== `#${resolvedView}`) {
+              history.replaceState(null, '', `#${resolvedView}`);
+            }
+          }
+          closeMobileMenu();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        navLinks.forEach(link => {
+          link.addEventListener('click', event => {
+            event.preventDefault();
+            setActiveView(link.getAttribute('data-view-link'));
+          });
+        });
+
+        const initialView = window.location.hash ? window.location.hash.replace('#', '') : 'visao-geral';
+        setActiveView(initialView, false);
+
+        window.addEventListener('hashchange', () => {
+          const hashView = window.location.hash ? window.location.hash.replace('#', '') : 'visao-geral';
+          setActiveView(hashView, false);
+        });
+      }
+    });
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

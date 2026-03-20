@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}SafeCare{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block nav_links %}
+<li><a href="#sobre">Sobre</a></li>
+<li><a href="#servicos">Serviços</a></li>
+<li><a href="#contato">Contato</a></li>
+<li><a class="btn-primary" href="{{ url_for('login') }}">Entrar</a></li>
+{% endblock %}
+{% block content %}
+<section class="hero" id="topo">
+  <div class="container hero-inner">
+    <div class="hero-content">
+      <span class="hero-tag">Cuidado humanizado com organização real</span>
+      <h1>Gestão completa para cuidadores e familiares.</h1>
+      <p>Cadastre pacientes, acompanhe tarefas, registre ocorrências, envie convites de autorização e visualize notificações e relatórios em um só sistema.</p>
+      <div class="hero-buttons">
+        <a class="btn-primary" href="{{ url_for('cadastro') }}">Criar conta</a>
+        <a class="btn-outline-light" href="#servicos">Ver funcionalidades</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-section" id="sobre">
+  <div class="container">
+    <div class="section-head">
+      <h2>Sobre o SafeCare</h2>
+      <p>Um painel simples para organizar a rotina de cuidado com segurança, histórico e transparência.</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-card">
+        <h3>Painel do cuidador</h3>
+        <p>Gestão de pacientes, tarefas, ocorrências, familiares autorizados e relatórios de acompanhamento.</p>
+      </article>
+      <article class="feature-card">
+        <h3>Painel do familiar</h3>
+        <p>Acesso apenas aos pacientes autorizados, com leitura de tarefas, ocorrências e convites pendentes.</p>
+      </article>
+      <article class="feature-card">
+        <h3>Autorização com controle</h3>
+        <p>O cuidador envia convite personalizado e o familiar aceita ou recusa dentro do sistema.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="home-section alt" id="servicos">
+  <div class="container">
+    <div class="section-head">
+      <h2>Principais funcionalidades</h2>
+      <p>Estrutura pronta para crescer sem retrabalho visual.</p>
+    </div>
+    <div class="service-grid">
+      <article class="service-card">
+        <h3>Cuidador</h3>
+        <ul class="clean-list">
+          <li>CRUD de pacientes</li>
+          <li>CRUD de tarefas com filtros</li>
+          <li>Registro de ocorrências</li>
+          <li>Envio de autorizações</li>
+        </ul>
+      </article>
+      <article class="service-card">
+        <h3>Familiar</h3>
+        <ul class="clean-list">
+          <li>Aceite ou recusa de convites</li>
+          <li>Visualização de pacientes autorizados</li>
+          <li>Leitura de tarefas e ocorrências</li>
+          <li>Notificações internas</li>
+        </ul>
+      </article>
+      <article class="service-card">
+        <h3>Relatórios</h3>
+        <ul class="clean-list">
+          <li>Diário</li>
+          <li>Semanal</li>
+          <li>Mensal</li>
+          <li>Resumo de tarefas concluídas</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="home-section" id="contato">
+  <div class="container">
+    <div class="section-head">
+      <h2>Comece agora</h2>
+      <p>Entre no sistema e cadastre seu primeiro paciente.</p>
+    </div>
+    <div class="contact-card centered-card">
+      <div class="contact-actions">
+        <a class="btn-primary" href="{{ url_for('cadastro') }}">Criar conta</a>
+        <a class="btn-outline" href="{{ url_for('login') }}">Já tenho login</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
