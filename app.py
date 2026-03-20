@@ -1,8 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from datetime import date
 from werkzeug.security import generate_password_hash, check_password_hash
-import psycopg2
-from psycopg2 import IntegrityError
 from database import get_db, init_db
 from auth import login_required, cuidador_required, familiar_required
 
@@ -46,7 +44,6 @@ def bootstrap_defaults():
         init_db()
         ensure_default_users()
         app.config["DB_READY"] = True
-
 
 
 def saudacao_por_horario():
@@ -106,7 +103,9 @@ def montar_metricas_dashboard(tarefas, notificacoes, solicitacoes=None):
     progresso = int((concluidas / total) * 100) if total else 0
     hoje = date.today().isoformat()
     hoje_total = sum(1 for t in tarefas if t.get("data") == hoje)
-    hoje_concluidas = sum(1 for t in tarefas if t.get("data") == hoje and (t.get("concluida") or t.get("status") == "concluida"))
+    hoje_concluidas = sum(
+        1 for t in tarefas if t.get("data") == hoje and (t.get("concluida") or t.get("status") == "concluida")
+    )
     pendentes_convites = sum(1 for s in solicitacoes if s.get("status") == "pendente")
     nao_lidas = sum(1 for n in notificacoes if not n.get("lida"))
     return {
@@ -120,16 +119,6 @@ def montar_metricas_dashboard(tarefas, notificacoes, solicitacoes=None):
         "pendentes_convites": pendentes_convites,
         "nao_lidas": nao_lidas,
     }
-
-
-def fetch_all_dict(query, params=()):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    cursor.close()
-    db.close()
-    return rows
 
 
 def criar_notificacao(cursor, usuario_id, titulo, mensagem, tipo):
@@ -209,7 +198,7 @@ def cadastro():
                 (nome, email, senha, perfil),
             )
             db.commit()
-        except IntegrityError:
+        except Exception:
             db.rollback()
             flash("Este e-mail já está cadastrado.", "error")
             return redirect(url_for("cadastro"))
@@ -271,14 +260,18 @@ def dashboard_cuidador():
         query_tarefas += " AND t.tipo = %s"
         params_tarefas.append(tipo_filtro)
     if status_filtro == "pendente":
-        query_tarefas += " AND t.concluida = 0"
+        query_tarefas += " AND t.concluida = FALSE"
     elif status_filtro == "realizada":
-        query_tarefas += " AND t.concluida = 1"
+        query_tarefas += " AND t.concluida = TRUE"
 
     query_tarefas += " ORDER BY t.data DESC, t.id DESC"
     cursor.execute(query_tarefas, tuple(params_tarefas))
     tarefas = cursor.fetchall()
-    tarefas_pendentes = sorted([t for t in tarefas if not t["concluida"]], key=lambda t: (t.get("data") or "", t.get("id") or 0), reverse=True)[:10]
+    tarefas_pendentes = sorted(
+        [t for t in tarefas if not t["concluida"]],
+        key=lambda t: (t.get("data") or "", t.get("id") or 0),
+        reverse=True,
+    )[:10]
 
     cursor.execute(
         """
@@ -359,21 +352,21 @@ def dashboard_cuidador():
         """
         SELECT 'diario' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN pacientes p ON p.id = t.paciente_id
         WHERE p.cuidador_id = %s AND t.data = CURRENT_DATE
         UNION ALL
         SELECT 'semanal' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN pacientes p ON p.id = t.paciente_id
         WHERE p.cuidador_id = %s AND t.data >= CURRENT_DATE - INTERVAL '7 days'
         UNION ALL
         SELECT 'mensal' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN pacientes p ON p.id = t.paciente_id
         WHERE p.cuidador_id = %s
@@ -384,9 +377,7 @@ def dashboard_cuidador():
     relatorios_tarefas = cursor.fetchall()
 
     cursor.execute(
-        """
-        SELECT COUNT(*) AS total_pacientes FROM pacientes WHERE cuidador_id = %s
-        """,
+        "SELECT COUNT(*) AS total_pacientes FROM pacientes WHERE cuidador_id = %s",
         (cuidador_id,),
     )
     total_pacientes = cursor.fetchone()["total_pacientes"]
@@ -535,11 +526,10 @@ def criar_tarefa():
         flash("Paciente inválido ou não pertence ao seu perfil.", "error")
         return redirect(url_for("dashboard_cuidador"))
 
-    cursor = db.cursor()
     cursor.execute(
         """
         INSERT INTO tarefas (paciente_id, descricao, tipo, data, concluida)
-        VALUES (%s, %s, %s, %s, 0)
+        VALUES (%s, %s, %s, %s, FALSE)
         """,
         (paciente_id, descricao, tipo, data),
     )
@@ -566,10 +556,12 @@ def editar_tarefa(tarefa_id):
     cursor = db.cursor()
     cursor.execute(
         """
-        UPDATE tarefas t
-        JOIN pacientes p ON p.id = t.paciente_id
-        SET t.descricao = %s, t.tipo = %s, t.data = %s
-        WHERE t.id = %s AND p.cuidador_id = %s
+        UPDATE tarefas
+        SET descricao = %s, tipo = %s, data = %s
+        WHERE id = %s
+          AND paciente_id IN (
+              SELECT id FROM pacientes WHERE cuidador_id = %s
+          )
         """,
         (descricao, tipo, data, tarefa_id, session["usuario_id"]),
     )
@@ -602,21 +594,21 @@ def atualizar_status_tarefa(tarefa_id):
         flash("Tarefa não encontrada.", "error")
         return redirect(url_for("dashboard_cuidador"))
 
-    novo_status = 0 if tarefa["concluida"] else 1
-    cursor = db.cursor()
+    novo_status = not tarefa["concluida"]
     cursor.execute(
         """
-        UPDATE tarefas t
-        JOIN pacientes p ON p.id = t.paciente_id
-        SET t.concluida = %s
-        WHERE t.id = %s AND p.cuidador_id = %s
+        UPDATE tarefas
+        SET concluida = %s
+        WHERE id = %s
+          AND paciente_id IN (
+              SELECT id FROM pacientes WHERE cuidador_id = %s
+          )
         """,
         (novo_status, tarefa_id, session["usuario_id"]),
     )
 
-    if novo_status == 1:
-        db_dict = db.cursor(dictionary=True)
-        db_dict.execute(
+    if novo_status is True:
+        cursor.execute(
             """
             SELECT a.familiar_id, p.nome AS paciente_nome
             FROM autorizacoes a
@@ -625,8 +617,7 @@ def atualizar_status_tarefa(tarefa_id):
             """,
             (tarefa["paciente_id"],),
         )
-        familiares = db_dict.fetchall()
-        db_dict.close()
+        familiares = cursor.fetchall()
         for fam in familiares:
             criar_notificacao(
                 cursor,
@@ -651,9 +642,11 @@ def excluir_tarefa(tarefa_id):
     cursor = db.cursor()
     cursor.execute(
         """
-        DELETE t FROM tarefas t
-        JOIN pacientes p ON p.id = t.paciente_id
-        WHERE t.id = %s AND p.cuidador_id = %s
+        DELETE FROM tarefas
+        WHERE id = %s
+          AND paciente_id IN (
+              SELECT id FROM pacientes WHERE cuidador_id = %s
+          )
         """,
         (tarefa_id, session["usuario_id"]),
     )
@@ -688,19 +681,16 @@ def criar_ocorrencia():
         flash("Paciente inválido ou não pertence ao seu perfil.", "error")
         return redirect(url_for("dashboard_cuidador"))
 
-    cursor = db.cursor()
     cursor.execute(
         "INSERT INTO ocorrencias (paciente_id, descricao) VALUES (%s, %s)",
         (paciente_id, descricao),
     )
 
-    db_dict = db.cursor(dictionary=True)
-    db_dict.execute(
+    cursor.execute(
         "SELECT familiar_id FROM autorizacoes WHERE paciente_id = %s",
         (paciente_id,),
     )
-    familiares = db_dict.fetchall()
-    db_dict.close()
+    familiares = cursor.fetchall()
 
     for fam in familiares:
         criar_notificacao(
@@ -768,8 +758,7 @@ def enviar_solicitacao_autorizacao():
         flash("Já existe uma solicitação pendente para esse familiar e paciente.", "error")
         return redirect(url_for("dashboard_cuidador"))
 
-    cursor2 = db.cursor()
-    cursor2.execute(
+    cursor.execute(
         """
         INSERT INTO solicitacoes_autorizacao
         (paciente_id, remetente_id, destinatario_id, mensagem, status)
@@ -778,14 +767,13 @@ def enviar_solicitacao_autorizacao():
         (paciente_id, session["usuario_id"], familiar["id"], mensagem),
     )
     criar_notificacao(
-        cursor2,
+        cursor,
         familiar["id"],
         "Nova solicitação de autorização",
         f"Você recebeu uma solicitação para acompanhar o paciente {paciente['nome']}.",
         "autorizacao_recebida",
     )
     db.commit()
-    cursor2.close()
     cursor.close()
     db.close()
 
@@ -819,7 +807,7 @@ def dashboard_familiar():
                t.descricao AS titulo,
                t.tipo,
                TO_CHAR(t.data, 'YYYY-MM-DD') AS data,
-               CASE WHEN t.concluida = 1 THEN 'concluida' ELSE 'pendente' END AS status,
+               CASE WHEN t.concluida = TRUE THEN 'concluida' ELSE 'pendente' END AS status,
                p.nome AS paciente_nome,
                p.id AS paciente_id
         FROM tarefas t
@@ -886,21 +874,21 @@ def dashboard_familiar():
         """
         SELECT 'diario' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN autorizacoes a ON a.paciente_id = t.paciente_id
         WHERE a.familiar_id = %s AND t.data = CURRENT_DATE
         UNION ALL
         SELECT 'semanal' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN autorizacoes a ON a.paciente_id = t.paciente_id
         WHERE a.familiar_id = %s AND t.data >= CURRENT_DATE - INTERVAL '7 days'
         UNION ALL
         SELECT 'mensal' AS periodo,
                COUNT(*) AS total_tarefas,
-               SUM(CASE WHEN concluida = 1 THEN 1 ELSE 0 END) AS concluidas
+               SUM(CASE WHEN concluida = TRUE THEN 1 ELSE 0 END) AS concluidas
         FROM tarefas t
         JOIN autorizacoes a ON a.paciente_id = t.paciente_id
         WHERE a.familiar_id = %s
@@ -952,8 +940,7 @@ def aceitar_autorizacao(solicitacao_id):
         flash("Solicitação inválida.", "error")
         return redirect(url_for("dashboard_familiar"))
 
-    cursor2 = db.cursor()
-    cursor2.execute(
+    cursor.execute(
         """
         UPDATE solicitacoes_autorizacao
         SET status = 'aceita', respondido_em = NOW()
@@ -961,19 +948,22 @@ def aceitar_autorizacao(solicitacao_id):
         """,
         (solicitacao_id,),
     )
-    cursor2.execute(
-        "INSERT INTO autorizacoes (paciente_id, familiar_id) VALUES (%s, %s) ON CONFLICT (paciente_id, familiar_id) DO NOTHING",
+    cursor.execute(
+        """
+        INSERT INTO autorizacoes (paciente_id, familiar_id)
+        VALUES (%s, %s)
+        ON CONFLICT (paciente_id, familiar_id) DO NOTHING
+        """,
         (solicitacao["paciente_id"], session["usuario_id"]),
     )
     criar_notificacao(
-        cursor2,
+        cursor,
         solicitacao["remetente_id"],
         "Autorização aceita",
         f"O familiar aceitou acompanhar o paciente {solicitacao['paciente_nome']}.",
         "autorizacao_aceita",
     )
     db.commit()
-    cursor2.close()
     cursor.close()
     db.close()
 
@@ -1002,8 +992,7 @@ def recusar_autorizacao(solicitacao_id):
         flash("Solicitação inválida.", "error")
         return redirect(url_for("dashboard_familiar"))
 
-    cursor2 = db.cursor()
-    cursor2.execute(
+    cursor.execute(
         """
         UPDATE solicitacoes_autorizacao
         SET status = 'recusada', respondido_em = NOW()
@@ -1012,14 +1001,13 @@ def recusar_autorizacao(solicitacao_id):
         (solicitacao_id,),
     )
     criar_notificacao(
-        cursor2,
+        cursor,
         solicitacao["remetente_id"],
         "Autorização recusada",
         f"O familiar recusou o convite para acompanhar o paciente {solicitacao['paciente_nome']}.",
         "autorizacao_recusada",
     )
     db.commit()
-    cursor2.close()
     cursor.close()
     db.close()
 
